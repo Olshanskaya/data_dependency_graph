@@ -1,0 +1,11 @@
+digraph {
+	fun_decl [label="get_change(m) "]
+	n1 [label="n = 0" shape=box]
+	c1 [label="c = ?" shape=box]
+	A [label="King Arthur"]
+	B [label="Sir Bedevere the Wise"]
+	L [label="Sir Lancelot the Brave"]
+	A -> B
+	A -> L
+	B -> L [constraint=false]
+}
