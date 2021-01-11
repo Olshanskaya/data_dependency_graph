@@ -28,14 +28,15 @@ def parse_list_inside_operation(dot, pairs, block_items):
         elif isinstance(next_op, c_ast.For):
             dot, pairs = add_to_graph_for(dot, pairs, next_op)
 
-
     return dot, pairs
+
 
 def unary_op_to_str(unary_op):
     op = unary_op.op
     expr = unary_op.expr.name
     str = op.__str__() + expr.__str__()
     return str, expr
+
 
 def binary_op_to_str(bin_op):
     op = bin_op.op
@@ -52,7 +53,7 @@ def binary_op_to_str(bin_op):
         right_str = right.value.__str__()
 
     op_string = left_str + " " + op.__str__() + " " + right_str
-    #print(type(left), type(right))
+    # print(type(left), type(right))
     return op_string, left, right
 
 
@@ -64,14 +65,12 @@ def add_to_graph_assignment(dot, pairs, operation):
     if isinstance(left, c_ast.ID):
         left_str = left.name.__str__()
 
-
     if isinstance(right, c_ast.ID):
         right_str = right.name.__str__()
     if isinstance(right, c_ast.Constant):
         right_str = right.value.__str__()
     if isinstance(right, c_ast.BinaryOp):
         right_str, l, r = binary_op_to_str(right)
-
 
     op_string = left_str + " " + op.__str__() + " " + right_str
     before_name = pairs[left.name]
@@ -89,7 +88,7 @@ def add_to_graph_assignment(dot, pairs, operation):
     if isinstance(right, c_ast.BinaryOp):
         dot.edge(pairs[r.name], new_name, constraint='true', color="black")
         dot.edge(pairs[l.name], new_name, constraint='true', color="black")
-        #print("BinaryOp", l.name, r.name)
+        # print("BinaryOp", l.name, r.name)
 
     return dot, pairs
 
@@ -117,7 +116,7 @@ def add_to_graph_return(dot, pairs, operation):
     str_to_dot = "return " + return_var
     r = random.randint(1, 100)
     blok_name = "return" + r.__str__()
-    #print(blok_name)
+    # print(blok_name)
     dot.node(blok_name, str_to_dot, shape='box')
 
     # что за вохвращаемое значение
@@ -126,15 +125,12 @@ def add_to_graph_return(dot, pairs, operation):
 
 
 def add_to_graph_if(dot, pairs, operation):
-    # print(operation.cond)
-    oper = operation.cond.op
-    op_left = operation.cond.left
-    op_right = operation.cond.right
     op_string, l, r = binary_op_to_str(operation.cond)
     # op_string = op_left.name.__str__() + oper.__str__() + op_right.value.__str__()
     global last_node
     dot.node(op_string, op_string, shape='diamond')
     dot.edge(last_node, op_string, constraint='true', color="white")
+    dot.edge(pairs[l.name], op_string, constraint='true', color="black")
     last_node = op_string
 
     # print("___________________________________________")
@@ -180,7 +176,7 @@ def add_to_graph_for(dot, pairs, operation):
     pairs[val] = new_val
     # print(str, pairs[val])
     dot.node(new_val, str, shape='box')
-    #расположние
+    # расположние
     dot.edge(last_node, new_val, constraint='true', color="white")
     last_node = new_val
     # стрелки
@@ -193,11 +189,11 @@ def add_to_graph_for(dot, pairs, operation):
 def comand_list_parser(operations, dots, pairss):
     length = len(operations)
     # print(operations)
-    print(length)
+    # print(length)
     for j in range(length):
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
         next_op = operations[j][1]
-        print(j, type(next_op))
+        # print(j, type(next_op))
         if isinstance(next_op, c_ast.Assignment):
             dots, pairss = add_to_graph_assignment(dots, pairss, next_op)
         elif isinstance(next_op, c_ast.Decl):
@@ -208,7 +204,7 @@ def comand_list_parser(operations, dots, pairss):
             dots, pairss = add_to_graph_if(dots, pairss, next_op)
         elif isinstance(next_op, c_ast.For):
             dots, pairss = add_to_graph_for(dots, pairss, next_op)
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
     return dots, pairss
 
 
@@ -224,23 +220,6 @@ if __name__ == '__main__':
     str: str = sys.argv[1]
     f = open(str, 'r')
     text = f.read()
-
-    text = """
-int fibonacci_fast(int n) {
-    if(n<=1) {
-        return n;
-        }
-    int a = 0;
-    int b = 1;
-    int c;
-    for(int i = 1; i < n; ++i) {
-        c = a + b;
-        a = b;
-        b = c;
-    }
-    return b;
-}
-        """
 
     parser = c_parser.CParser()
     ast = parser.parse(text, filename='<none>')
@@ -268,15 +247,6 @@ int fibonacci_fast(int n) {
     compound = nodes.children()[1][1]
     operations = compound.children()
     dot, pairs = comand_list_parser(operations, dot, pairs)
-
-    '''
-    dot.node('A', 'King Arthur')
-    dot.node('B', 'Sir Bedevere the Wise')
-    dot.node('L', 'Sir Lancelot the Brave')
-
-    dot.edges(['AB', 'AL'])
-    dot.edge('B', 'L', constraint='false')
-    '''
 
     s = Source(dot.source, filename="ddg.gv", format="png")
     s.view()

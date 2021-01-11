@@ -9,6 +9,7 @@ int fibonacci_fast(int n) {
         c = a + b;
         a = b;
         b = c;
+        break;
     }
     return b;
 }
