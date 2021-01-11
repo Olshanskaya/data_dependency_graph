@@ -53,7 +53,7 @@ def binary_op_to_str(bin_op):
 
     op_string = left_str + " " + op.__str__() + " " + right_str
     #print(type(left), type(right))
-    return op_string
+    return op_string, left, right
 
 
 def add_to_graph_assignment(dot, pairs, operation):
@@ -63,33 +63,33 @@ def add_to_graph_assignment(dot, pairs, operation):
     right = operation.rvalue
     if isinstance(left, c_ast.ID):
         left_str = left.name.__str__()
-    if isinstance(left, c_ast.Constant):
-        left_str = left.value.__str__()
-    if isinstance(left, c_ast.BinaryOp):
-        left_str = binary_op_to_str(left)
+
 
     if isinstance(right, c_ast.ID):
         right_str = right.name.__str__()
     if isinstance(right, c_ast.Constant):
         right_str = right.value.__str__()
     if isinstance(right, c_ast.BinaryOp):
-        right_str = binary_op_to_str(right)
+        right_str, l, r = binary_op_to_str(right)
+
 
     op_string = left_str + " " + op.__str__() + " " + right_str
-    print(op_string)
-    print(left.name)
     before_name = pairs[left.name]
-    print(before_name)
     new_name = before_name + "1"
-    print(new_name)
     pairs[left.name] = new_name
-
     dot.node(new_name, op_string, shape='box')
-
     global last_node
     dot.edge(last_node, new_name, constraint='true', color="white")
     last_node = new_name
     # print(op_string)
+
+    # стрелки
+    if isinstance(right, c_ast.ID):
+        dot.edge(pairs[right.name], new_name, constraint='true', color="black")
+    if isinstance(right, c_ast.BinaryOp):
+        dot.edge(pairs[r.name], new_name, constraint='true', color="black")
+        dot.edge(pairs[l.name], new_name, constraint='true', color="black")
+        #print("BinaryOp", l.name, r.name)
 
     return dot, pairs
 
@@ -130,7 +130,7 @@ def add_to_graph_if(dot, pairs, operation):
     oper = operation.cond.op
     op_left = operation.cond.left
     op_right = operation.cond.right
-    op_string = binary_op_to_str(operation.cond)
+    op_string, l, r = binary_op_to_str(operation.cond)
     # op_string = op_left.name.__str__() + oper.__str__() + op_right.value.__str__()
     global last_node
     dot.node(op_string, op_string, shape='diamond')
@@ -161,7 +161,7 @@ def add_to_graph_for(dot, pairs, operation):
         dot, pairs = add_to_graph_decl(dot, pairs, next_op)
 
     for_cond = operation.cond
-    cond_string = binary_op_to_str(for_cond)
+    cond_string, l, r = binary_op_to_str(for_cond)
     global last_node
     dot.node(cond_string, cond_string, shape='diamond')
     dot.edge(last_node, cond_string, constraint='true', color="white")
