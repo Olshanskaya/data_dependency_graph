@@ -1,25 +1,92 @@
 from __future__ import print_function
 import sys
+import random
+
 from graphviz import Digraph
 from graphviz import Source
-
-
-
 
 sys.path.extend(['.', '..'])
 
 from pycparser import c_parser, c_ast
 
+last_node = ""
+
+
+def parse_list_inside_operation(dot, pairs, block_items):
+    length = len(block_items)
+    for j in range(length):
+        next_op = block_items[j]
+        # print(next_op)
+        if isinstance(next_op, c_ast.Assignment):
+            dot, pairs = add_to_graph_assignment(dot, pairs, next_op)
+        elif isinstance(next_op, c_ast.Decl):
+            dot, pairs = add_to_graph_decl(dot, pairs, next_op)
+        elif isinstance(next_op, c_ast.Return):
+            dot, pairs = add_to_graph_return(dot, pairs, next_op)
+        elif isinstance(next_op, c_ast.If):
+            dot, pairs = add_to_graph_if(dot, pairs, next_op)
+        elif isinstance(next_op, c_ast.For):
+            dot, pairs = add_to_graph_for(dot, pairs, next_op)
+
+
+    return dot, pairs
+
+
+def binary_op_to_str(bin_op):
+    op = bin_op.op
+    left = bin_op.left
+    right = bin_op.right
+    if isinstance(left, c_ast.ID):
+        left_str = left.name.__str__()
+    if isinstance(left, c_ast.Constant):
+        left_str = left.value.__str__()
+
+    if isinstance(right, c_ast.ID):
+        right_str = right.name.__str__()
+    if isinstance(right, c_ast.Constant):
+        right_str = right.value.__str__()
+
+    op_string = left_str + " " + op.__str__() + " " + right_str
+    #print(type(left), type(right))
+    return op_string
 
 
 def add_to_graph_assignment(dot, pairs, operation):
     # print(operation)
+    op = operation.op
+    left = operation.lvalue
+    right = operation.rvalue
+    if isinstance(left, c_ast.ID):
+        left_str = left.name.__str__()
+    if isinstance(left, c_ast.Constant):
+        left_str = left.value.__str__()
+    if isinstance(left, c_ast.BinaryOp):
+        left_str = binary_op_to_str(left)
+
+    if isinstance(right, c_ast.ID):
+        right_str = right.name.__str__()
+    if isinstance(right, c_ast.Constant):
+        right_str = right.value.__str__()
+    if isinstance(right, c_ast.BinaryOp):
+        right_str = binary_op_to_str(right)
+
+    op_string = left_str + " " + op.__str__() + " " + right_str
+
+    # print(op_string)
+
+    '''
+    global last_node
+    dot.edge(last_node, pairs[name_val], constraint='true', color="white")
+    last_node = pairs[name_val]
+    '''
+
+
+
     return dot, pairs
 
 
 def add_to_graph_decl(dot, pairs, operation):
     str_to_dot = ""
-    print(operation)
     name_val = operation.name
     init_value = operation.init
     if init_value is None:
@@ -29,12 +96,100 @@ def add_to_graph_decl(dot, pairs, operation):
 
     pairs[name_val] = name_val + "1"
     dot.node(pairs[name_val], str_to_dot, shape='box')
+    global last_node
+    dot.edge(last_node, pairs[name_val], constraint='true', color="white")
+    last_node = pairs[name_val]
+
     return dot, pairs
 
 
 def add_to_graph_return(dot, pairs, operation):
-    # print(operation)
+    return_var = operation.expr.name
+    str_to_dot = "return " + return_var
+    r = random.randint(1, 100)
+    blok_name = "return" + r.__str__()
+    #print(blok_name)
+    dot.node(blok_name, str_to_dot, shape='box')
+
+    # что за вохвращаемое значение
+    dot.edge(pairs[return_var], blok_name, constraint='false', color="black")
     return dot, pairs
+
+
+def add_to_graph_if(dot, pairs, operation):
+    # print(operation.cond)
+    oper = operation.cond.op
+    op_left = operation.cond.left
+    op_right = operation.cond.right
+    op_string = binary_op_to_str(operation.cond)
+    # op_string = op_left.name.__str__() + oper.__str__() + op_right.value.__str__()
+    global last_node
+    dot.node(op_string, op_string, shape='diamond')
+    dot.edge(last_node, op_string, constraint='true', color="white")
+    last_node = op_string
+
+    # print("___________________________________________")
+    list_true = operation.iftrue
+    if list_true is not None:
+        items = list_true.block_items
+        dot, pairs = parse_list_inside_operation(dot, pairs, items)
+
+    # print("___________________________________________")
+    list_false = operation.iffalse
+    if list_false is not None:
+        items = list_true.block_items
+        dot, pairs = parse_list_inside_operation(dot, pairs, items)
+    # print(operation.iffalse)
+    return dot, pairs
+
+
+def add_to_graph_for(dot, pairs, operation):
+    # print(operation)
+    for_init = operation.init.decls
+    length = len(for_init)
+    for j in range(length):
+        next_op = for_init[j]
+        dot, pairs = add_to_graph_decl(dot, pairs, next_op)
+
+    for_cond = operation.cond
+    cond_string = binary_op_to_str(for_cond)
+    global last_node
+    dot.node(cond_string, cond_string, shape='diamond')
+    dot.edge(last_node, cond_string, constraint='true', color="white")
+    last_node = cond_string
+
+
+    for_stmt = operation.stmt
+    if for_stmt is not None:
+        items = for_stmt.block_items
+        dot, pairs = parse_list_inside_operation(dot, pairs, items)
+    print(for_stmt)
+
+
+    for_next = operation.next
+    return dot, pairs
+
+
+def comand_list_parser(operations, dots, pairss):
+    length = len(operations)
+    # print(operations)
+    print(length)
+    for j in range(length):
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        next_op = operations[j][1]
+        print(j, type(next_op))
+        if isinstance(next_op, c_ast.Assignment):
+            dots, pairss = add_to_graph_assignment(dots, pairss, next_op)
+        elif isinstance(next_op, c_ast.Decl):
+            dots, pairss = add_to_graph_decl(dots, pairss, next_op)
+        elif isinstance(next_op, c_ast.Return):
+            dots, pairss = add_to_graph_return(dots, pairss, next_op)
+        elif isinstance(next_op, c_ast.If):
+            dots, pairss = add_to_graph_if(dots, pairss, next_op)
+        elif isinstance(next_op, c_ast.For):
+            dots, pairss = add_to_graph_for(dots, pairss, next_op)
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    return dots, pairss
 
 
 if __name__ == '__main__':
@@ -51,16 +206,20 @@ if __name__ == '__main__':
     text = f.read()
 
     text = """
-     int get_change(int m) {
-        int n = 0;
-        n = m / 10;    
-        m %= 10;
-        n += m / 5;
-        m %= 5;
-        int c;
-        n += m;
+int fibonacci_fast(int n) {
+    if(n<=1) {
         return n;
+        }
+    int a = 0;
+    int b = 1;
+    int c;
+    for(int i = 1; i < n; i++) {
+        c = a + b;
+        a = b;
+        b = c;
     }
+    return b;
+}
         """
 
     parser = c_parser.CParser()
@@ -85,31 +244,19 @@ if __name__ == '__main__':
         pairs[declname] = 'fun_decl'
 
     dot.node('fun_decl', fun_decl)
-    print(pairs)
-
-    # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    last_node = 'fun_decl'
     compound = nodes.children()[1][1]
     operations = compound.children()
-    n = len(operations)
-    for i in range(n):
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        next_op = operations[i][1]
-        if isinstance(next_op, c_ast.Assignment):
-            dot, pairs = add_to_graph_assignment(dot, pairs, next_op)
-        elif isinstance(next_op, c_ast.Decl):
-            dot, pairs = add_to_graph_decl(dot, pairs, next_op)
-        elif isinstance(next_op, c_ast.Return):
-            dot, pairs = add_to_graph_return(dot, pairs, next_op)
+    dot, pairs = comand_list_parser(operations, dot, pairs)
 
-        print(pairs)
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
-
+    '''
     dot.node('A', 'King Arthur')
     dot.node('B', 'Sir Bedevere the Wise')
     dot.node('L', 'Sir Lancelot the Brave')
 
     dot.edges(['AB', 'AL'])
     dot.edge('B', 'L', constraint='false')
+    '''
 
     s = Source(dot.source, filename="ddg.gv", format="png")
     s.view()
