@@ -31,6 +31,11 @@ def parse_list_inside_operation(dot, pairs, block_items):
 
     return dot, pairs
 
+def unary_op_to_str(unary_op):
+    op = unary_op.op
+    expr = unary_op.expr.name
+    str = op.__str__() + expr.__str__()
+    return str, expr
 
 def binary_op_to_str(bin_op):
     op = bin_op.op
@@ -71,16 +76,20 @@ def add_to_graph_assignment(dot, pairs, operation):
         right_str = binary_op_to_str(right)
 
     op_string = left_str + " " + op.__str__() + " " + right_str
+    print(op_string)
+    print(left.name)
+    before_name = pairs[left.name]
+    print(before_name)
+    new_name = before_name + "1"
+    print(new_name)
+    pairs[left.name] = new_name
 
-    # print(op_string)
+    dot.node(new_name, op_string, shape='box')
 
-    '''
     global last_node
-    dot.edge(last_node, pairs[name_val], constraint='true', color="white")
-    last_node = pairs[name_val]
-    '''
-
-
+    dot.edge(last_node, new_name, constraint='true', color="white")
+    last_node = new_name
+    # print(op_string)
 
     return dot, pairs
 
@@ -158,15 +167,26 @@ def add_to_graph_for(dot, pairs, operation):
     dot.edge(last_node, cond_string, constraint='true', color="white")
     last_node = cond_string
 
-
     for_stmt = operation.stmt
     if for_stmt is not None:
         items = for_stmt.block_items
         dot, pairs = parse_list_inside_operation(dot, pairs, items)
-    print(for_stmt)
-
+    # print(for_stmt)
 
     for_next = operation.next
+    str, val = unary_op_to_str(for_next)
+    before_val = pairs[val]
+    new_val = before_val + "1"
+    pairs[val] = new_val
+    # print(str, pairs[val])
+    dot.node(new_val, str, shape='box')
+    #расположние
+    dot.edge(last_node, new_val, constraint='true', color="white")
+    last_node = new_val
+    # стрелки
+    dot.edge(before_val, new_val, constraint='true', color="black")
+    dot.edge(new_val, new_val, constraint='true', color="black")
+    dot.edge(new_val, cond_string, constraint='true', color="black")
     return dot, pairs
 
 
@@ -213,7 +233,7 @@ int fibonacci_fast(int n) {
     int a = 0;
     int b = 1;
     int c;
-    for(int i = 1; i < n; i++) {
+    for(int i = 1; i < n; ++i) {
         c = a + b;
         a = b;
         b = c;
