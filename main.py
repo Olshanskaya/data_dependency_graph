@@ -97,16 +97,25 @@ def add_to_graph_decl(dot, pairs, operation):
     str_to_dot = ""
     name_val = operation.name
     init_value = operation.init
+    # print(type(init_value))
     if init_value is None:
         str_to_dot = name_val + " = ?"
-    else:
+    elif isinstance(init_value, c_ast.Constant):
         str_to_dot = name_val + " = " + init_value.value
+    elif isinstance(init_value, c_ast.BinaryOp):
+        op_string, l, r = binary_op_to_str(init_value)
+        str_to_dot = name_val + " = " + op_string
+
 
     pairs[name_val] = name_val + "1"
     dot.node(pairs[name_val], str_to_dot, shape='box')
     global last_node
     dot.edge(last_node, pairs[name_val], constraint='true', color="white")
     last_node = pairs[name_val]
+
+    if isinstance(init_value, c_ast.BinaryOp):
+        dot.edge(pairs[r.name], last_node, constraint='true', color="black")
+        dot.edge(pairs[l.name], last_node, constraint='true', color="black")
 
     return dot, pairs
 
@@ -223,6 +232,9 @@ if __name__ == '__main__':
 
     parser = c_parser.CParser()
     ast = parser.parse(text, filename='<none>')
+    print(ast)
+
+
     nodes = ast.children()[0][1]
     decl = nodes.children()[0][1]
     FuncDecl = decl.children()[0][1]
@@ -232,7 +244,7 @@ if __name__ == '__main__':
     fun_decl = decl.name + "("
     for i in range(n):
         TypeDecl = ParamList[i][1]
-        if TypeDecl.name == None:
+        if TypeDecl.name is None:
             fun_decl = fun_decl + ")"
             break
         declname = TypeDecl.name

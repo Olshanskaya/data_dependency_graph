@@ -1,12 +1,12 @@
 int fibonacci_fast(int n) {
-    if(n<=1) {
+    if(n <= 1) {
         return n;
         }
     int a = 0;
     int b = 1;
-    int c;
+
     for(int i = 1; i < n; ++i) {
-        c = a + b;
+        int c = a + b;
         a = b;
         b = c;
     }
