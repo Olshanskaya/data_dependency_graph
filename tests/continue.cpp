@@ -1,14 +1,10 @@
-int fibonacci_fast(int n) {
-    if(n<=1) {
-        return n;
+int fun_cont(int n) {
+    int i = 0;
+    do {
+        i = i + 1;
+        if(i % 2) {
+        continue;
         }
-    int a = 0;
-    int b = 1;
-    int c;
-    for(int i = 1; i < n; ++i) {
-        c = a + b;
-        a = b;
-        b = c;
-    }
-    return b;
+    } while (i < n);
+    return i;
 }

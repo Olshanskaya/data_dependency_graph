@@ -1,6 +1,5 @@
 
 double sum (double a, double b) {
-double c;
-c = a + b;
+double c = a + b;
 return c;
 }

@@ -1,15 +1,12 @@
-int fibonacci_fast(int n) {
-    if(n<=1) {
-        return n;
+int fun_br(int n, int i) {
+    int r = i;
+    int j = 1;
+    while (j > 1000) {
+        r = i * r;
+        j = j + 1;
+        if(j == n) {
+            break;
         }
-    int a = 0;
-    int b = 1;
-    int c;
-    for(int i = 1; i < n; ++i) {
-        c = a + b;
-        a = b;
-        b = c;
-        break;
     }
-    return b;
+    return r;
 }

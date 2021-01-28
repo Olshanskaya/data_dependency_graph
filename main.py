@@ -16,7 +16,7 @@ def parse_list_inside_operation(dot, pairs, block_items):
     length = len(block_items)
     for j in range(length):
         next_op = block_items[j]
-        # print(next_op)
+        #print(next_op)
         if isinstance(next_op, c_ast.Assignment):
             dot, pairs = add_to_graph_assignment(dot, pairs, next_op)
         elif isinstance(next_op, c_ast.Decl):
@@ -42,6 +42,7 @@ def binary_op_to_str(bin_op):
     op = bin_op.op
     left = bin_op.left
     right = bin_op.right
+    #print(type(left))
     if isinstance(left, c_ast.ID):
         left_str = left.name.__str__()
     if isinstance(left, c_ast.Constant):
@@ -51,14 +52,14 @@ def binary_op_to_str(bin_op):
         right_str = right.name.__str__()
     if isinstance(right, c_ast.Constant):
         right_str = right.value.__str__()
-
+    #print(type(left_str), type(right_str))
     op_string = left_str + " " + op.__str__() + " " + right_str
     # print(type(left), type(right))
     return op_string, left, right
 
 
 def add_to_graph_assignment(dot, pairs, operation):
-    # print(operation)
+    #print(operation)
     op = operation.op
     left = operation.lvalue
     right = operation.rvalue
@@ -86,8 +87,15 @@ def add_to_graph_assignment(dot, pairs, operation):
     if isinstance(right, c_ast.ID):
         dot.edge(pairs[right.name], new_name, constraint='true', color="black")
     if isinstance(right, c_ast.BinaryOp):
-        dot.edge(pairs[r.name], new_name, constraint='true', color="black")
-        dot.edge(pairs[l.name], new_name, constraint='true', color="black")
+        if not isinstance(r, c_ast.Constant):
+            dot.edge(pairs[r.name], new_name, constraint='true', color="black")
+            if before_name + "1" == pairs[r.name]:
+                dot.edge(before_name, new_name, constraint='true', color="black")
+
+        if not isinstance(l, c_ast.Constant):
+            dot.edge(pairs[l.name], new_name, constraint='true', color="black")
+            if before_name + "1" == pairs[l.name]:
+                dot.edge(before_name, new_name, constraint='true', color="black")
         # print("BinaryOp", l.name, r.name)
 
     return dot, pairs
@@ -97,7 +105,7 @@ def add_to_graph_decl(dot, pairs, operation):
     str_to_dot = ""
     name_val = operation.name
     init_value = operation.init
-    # print(type(init_value))
+    #print(type(init_value))
     if init_value is None:
         str_to_dot = name_val + " = ?"
     elif isinstance(init_value, c_ast.Constant):
@@ -105,6 +113,10 @@ def add_to_graph_decl(dot, pairs, operation):
     elif isinstance(init_value, c_ast.BinaryOp):
         op_string, l, r = binary_op_to_str(init_value)
         str_to_dot = name_val + " = " + op_string
+    elif isinstance(init_value, c_ast.ID):
+        ri = init_value.name
+        str_to_dot = name_val + " = " + ri
+        #print(init_value)
 
 
     pairs[name_val] = name_val + "1"
@@ -116,6 +128,10 @@ def add_to_graph_decl(dot, pairs, operation):
     if isinstance(init_value, c_ast.BinaryOp):
         dot.edge(pairs[r.name], last_node, constraint='true', color="black")
         dot.edge(pairs[l.name], last_node, constraint='true', color="black")
+
+    if isinstance(init_value, c_ast.ID):
+        ri = init_value.name
+        dot.edge(pairs[ri], last_node, constraint='true', color="black")
 
     return dot, pairs
 
@@ -139,7 +155,12 @@ def add_to_graph_if(dot, pairs, operation):
     global last_node
     dot.node(op_string, op_string, shape='diamond')
     dot.edge(last_node, op_string, constraint='true', color="white")
-    dot.edge(pairs[l.name], op_string, constraint='true', color="black")
+
+    #print(type(l), type(r))
+    if isinstance(l, c_ast.ID):
+        dot.edge(pairs[l.name], op_string, constraint='true', color="black")
+    if isinstance(r, c_ast.ID):
+        dot.edge(pairs[r.name], op_string, constraint='true', color="black")
     last_node = op_string
 
     # print("___________________________________________")
@@ -194,6 +215,61 @@ def add_to_graph_for(dot, pairs, operation):
     dot.edge(new_val, cond_string, constraint='true', color="black")
     return dot, pairs
 
+def add_to_graph_do_while(dot, pairs, operation):
+    #print(operation)
+    condition = operation.cond
+    while_stmt = operation.stmt
+    #print(while_stmt)
+
+    if while_stmt is not None:
+        items = while_stmt.block_items
+        dot, pairs = parse_list_inside_operation(dot, pairs, items)
+
+
+
+    cond_string, l, r = binary_op_to_str(condition)
+    global last_node
+    dot.node(cond_string, cond_string, shape='diamond')
+    dot.edge(last_node, cond_string, constraint='true', color="white")
+    last_node = cond_string
+
+    # стрелки
+    if isinstance(l, c_ast.ID):
+        dot.edge(pairs[l.name], cond_string, constraint='true', color="black")
+    if isinstance(r, c_ast.ID):
+        dot.edge(pairs[r.name], cond_string, constraint='true', color="black")
+
+
+
+    return dot, pairs
+
+def add_to_graph_while(dot, pairs, operation):
+    #print(operation)
+    condition = operation.cond
+    while_stmt = operation.stmt
+
+    cond_string, l, r = binary_op_to_str(condition)
+    global last_node
+    dot.node(cond_string, cond_string, shape='diamond')
+    dot.edge(last_node, cond_string, constraint='true', color="white")
+    last_node = cond_string
+
+    # стрелки
+    if isinstance(l, c_ast.ID):
+        dot.edge(pairs[l.name], cond_string, constraint='true', color="black")
+    if isinstance(r, c_ast.ID):
+        dot.edge(pairs[r.name], cond_string, constraint='true', color="black")
+
+    if while_stmt is not None:
+        items = while_stmt.block_items
+        dot, pairs = parse_list_inside_operation(dot, pairs, items)
+
+
+
+
+    return dot, pairs
+
+
 
 def comand_list_parser(operations, dots, pairss):
     length = len(operations)
@@ -202,7 +278,11 @@ def comand_list_parser(operations, dots, pairss):
     for j in range(length):
         # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
         next_op = operations[j][1]
-        # print(j, type(next_op))
+        #print(j, type(next_op))
+        if isinstance(next_op, c_ast.While):
+            dots, pairss = add_to_graph_while(dots, pairss, next_op)
+        if isinstance(next_op, c_ast.DoWhile):
+            dots, pairss = add_to_graph_do_while(dots, pairss, next_op)
         if isinstance(next_op, c_ast.Assignment):
             dots, pairss = add_to_graph_assignment(dots, pairss, next_op)
         elif isinstance(next_op, c_ast.Decl):
@@ -232,7 +312,7 @@ if __name__ == '__main__':
 
     parser = c_parser.CParser()
     ast = parser.parse(text, filename='<none>')
-    print(ast)
+    # print(ast)
 
 
     nodes = ast.children()[0][1]
