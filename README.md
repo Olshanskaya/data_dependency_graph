@@ -1,2 +1,4 @@
 # data_dependency_graph
-ddg cpp
+Нарисовать DDG по существующему AST языка C++ на ЯП Python
+
+
