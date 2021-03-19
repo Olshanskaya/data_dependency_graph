@@ -6,9 +6,12 @@ int fibonacci_fast(int n) {
     int b = 1;
     int c;
     for(int i = 1; i < n; ++i) {
-        c = a + b;
+        c = a + c;
+        if(c==0) {
         a = b;
         b = c;
+        }
+
     }
     return b;
 }
