@@ -1,8 +1,5 @@
-# data_dependency_graph
-Нарисовать DDG по существующему AST языка C++ на ЯП Python
+# Data Dependency Graph
+This repository showcases the results of a lab project where C++ Abstract Syntax Trees (ASTs) were parsed and processed using Python to draw Data Dependency Graphs. The graphs depict the relationships and dependencies between variables and expressions within the C++ code, providing valuable insights into the data flow and interactions.
 
-Пример для программы tests/fibonacci.cpp:
-
-
-
+Example of generated DDG for tests/fibonacci.cpp:
 ![Screenshot](ddg.gv.png)
